@@ -54,10 +54,12 @@ int lookahead;
 char lexemes[STRMAX];
 int lastchar = -1;
 int lastentry = 0;
+int numOfVars = 0;
+int vars[];
 
 int lexan();
 void parse();
-void expr();
+void expr();//
 void term();
 void factor();
 void match(int t);
@@ -67,6 +69,23 @@ void init();
 void error(char *m);  
 int lookup(char s[]);
 void openFiles(char* infileName, char* outfileName);
+
+void header();
+void declarations();
+void variableDeclarations();
+void constantDefinitions();
+void declarationsPrime();
+void declarationsPrime();
+void constantDefinitions();
+void constantDefinition();
+void constantDefinitionsRest();
+void variableDeclarations();
+void variableDeclarationsRest();
+void variableDeclaration();
+void identifierList();
+void identifierListRest();
+void type();
+void block();
 
 /*form of symbol table entry */
 struct entry{
@@ -155,35 +174,191 @@ int lexan(){
   }
 }
 
+
+//Program -> Header Declarations Block.
+//parese = program
 void parse()
 {
-    lookahead = lexan();
-    
-    if(lookahead == program){
-        match(program);
-        match(ID);
-        match('(');
-        match(infix);
-        match(',');
-        match(postfix);
-        match(')');
-        match(begin);
-        fprintf(outfile,"program ");
-        fprintf(outfile,"%s", symtable[8].lexptr);
-        fprintf(outfile,"(infix,postfix) \nbegin\n");
+  lookahead = lexan();
+    // if(lookahead == program){
+    //     match(program);
+    //     match(ID);
+    //     match('(');
+    //     match(infix);
+    //     match(',');
+    //     match(postfix);
+    //     match(')');
+    //     match(begin);
 
-        while(lookahead!=end){
-            expr();match(';');
-            emit(';',NONE);
-        }
-        match(end); 
-        fprintf(outfile,"end");
-    }
-    else {
-        error("syntax error");
-    }
+    //     fprintf(outfile,"program ");
+    //     fprintf(outfile,"%s", symtable[8].lexptr);
+    //     fprintf(outfile,"(infix,postfix) \nbegin\n");
+
+    //     while(lookahead!=end){
+    //         expr();match(';');
+    //         emit(';',NONE);
+    //     }
+    //     match(end); 
+    //     fprintf(outfile,"end");
+    // }
+    // else {
+    //     error("syntax errorr");
+    // }
+
+  header();
+  declarations();
+  //block();
+
   
 }
+
+//Header -> program id(input,output) ;
+void header(){
+  if(lookahead == program){
+      match(program);
+  }else error("'PROGRAM' is missing");
+  if(lookahead == ID){
+      match(ID);
+  }else error("ID is missing");
+  if(lookahead == '('){
+      match('(');
+  }else error("'(' is missing");
+  if(lookahead == INPUT){
+    match(INPUT);
+  }else error("'Input' is missing");
+  if(lookahead == ','){
+    match(',');
+  }else error("',' is missing");
+  if(lookahead == OUTPUT){
+    match(OUTPUT);
+  }else error("'Output' is missing");
+  if(lookahead == ')'){
+    match(')');
+  }else error("')' is missing");
+  if(lookahead == ';'){
+    match(';');
+  }else error("';' is missing");
+
+  fprintf(outfile, "#include <iostream>\nusing namespace std;\n");
+
+}
+
+/*
+Declarations -> VAR VariableDeclarations |
+	CONST ConstantDefinitions DeclarationsPrime
+	| <epsilon>
+*/
+void declarations(){
+  if (lookahead == VAR)
+  {
+    match(VAR);
+    variableDeclarations();
+  }
+  else if (lookahead == CONST){
+    match(CONST);
+    constantDefinitions();
+    declarationsPrime();
+  }
+  else return;
+  
+
+}
+
+//DeclarationsPrime -> VAR VariableDeclarations | <epsilon>
+void declarationsPrime(){
+  if (lookahead == VAR)
+  {
+    match(VAR);
+    variableDeclarations();
+  }
+  else return;
+  
+}
+
+//ConstantDefinitions -> ConstantDefinition ConstantDefinitionsRest
+void constantDefinitions(){
+  constantDefinition();
+  constantDefinitionsRest();
+}
+
+//ConstantDefinition -> id=num;
+void constantDefinition(){
+  // id = num;
+}
+
+//ConstantDefinitionsRest -> ConstantDefinition ConstantDefinitionsRest  | <epsilon>
+void constantDefinitionsRest(){
+  constantDefinition();
+  constantDefinitionsRest();
+
+  //else return;
+}
+
+// VariableDeclarations  -> VariableDeclaration VariableDeclarationsRest
+void variableDeclarations(){
+  variableDeclaration();
+  variableDeclarationsRest();
+}
+
+// VariableDeclarationsRest -> VariableDeclaration VariableDeclarationsRest | <epsilon>
+void variableDeclarationsRest(){
+  if (lookahead == ID) // not sure
+  {  
+    variableDeclaration();
+    variableDeclarationsRest();
+  }else return;
+}
+
+//VariableDeclaration -> IdentifierList : Type ;
+void variableDeclaration(){
+  identifierList();
+  match(':');
+  type();
+  match(';');
+}
+
+// IdentifierList  -> id IdentifierListRest
+void identifierList(){
+  match(ID);
+  identifierListRest();
+}
+
+// identifierListRest ->  , id IdentifierListRest | <epsilon>
+void identifierListRest(){
+  if(lookahead == ','){
+    match(',');
+    match(ID);
+    identifierListRest();
+  }
+  else return;
+}
+
+//Type -> integer | real | char | boolean
+void type(){
+  if (lookahead == INTEGER)
+  {
+    match(INTEGER);
+    fprintf(outfile, "int ");
+  }
+  else if (lookahead == REAL)
+  {
+    match(REAL);
+    fprintf(outfile, "real ");
+  }
+  else if (lookahead == CHAR)
+  {
+    match(CHAR);
+    fprintf(outfile, "char ");
+  }
+  else if (lookahead == BOOLEAN)
+  {
+    match(BOOLEAN);
+    fprintf(outfile, "bool ");
+  }
+  else error("Syntax error in type");
+  
+}
+
 
 void expr()
 {
@@ -223,7 +398,7 @@ void factor(){
     case ID:
       emit(ID,tokenval);match(ID);break;
     default:
-    error("syntax error");
+    error("syntax error in factor");
   }
 }
 
@@ -232,7 +407,7 @@ void match(int t)
   if (lookahead==t){
     lookahead=lexan();
   }
-  else error ("syntax error");
+  else error ("syntax error in match");
 }
 
 void emit(int t, int tval)
@@ -309,6 +484,8 @@ void openFiles(char* infileName, char* outfileName)
     outfile = fopen(outfileName, "w");
 
 }
+
+
 
 int main(int argc, char **argv)
 {
