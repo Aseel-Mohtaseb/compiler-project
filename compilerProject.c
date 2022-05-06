@@ -5,6 +5,7 @@
 #include <string.h>
 
 #define BSIZE 128
+#define MAXTEMPSIZE 50
 #define NONE -1
 #define EOS '\0'
 #define NUM 256//
@@ -54,12 +55,12 @@ int lookahead;
 char lexemes[STRMAX];
 int lastchar = -1;
 int lastentry = 0;
-int numOfVars = 0;
-int vars[];
+int tempIndex = 0;
+int temp[MAXTEMPSIZE];// To store tokenVals
 
 int lexan();
 void parse();
-void expr();//
+void expr();
 void term();
 void factor();
 void match(int t);
@@ -309,16 +310,29 @@ void variableDeclarationsRest(){
   }else return;
 }
 
+//X,Y,Z: integer; A,B: real; C: char; F: boolean;
+
+
 //VariableDeclaration -> IdentifierList : Type ;
 void variableDeclaration(){
+  tempIndex = 0;
   identifierList();
   match(':');
   type();
   match(';');
+  for (int i = 0; i < tempIndex; i++)
+  {
+    emit(ID, temp[i]);
+    if (i != tempIndex-1)
+      fprintf(outfile, ",");
+  }
+  fprintf(outfile, "; ");
 }
 
 // IdentifierList  -> id IdentifierListRest
 void identifierList(){
+  temp[tempIndex] = tokenval;
+  tempIndex++;
   match(ID);
   identifierListRest();
 }
@@ -327,6 +341,8 @@ void identifierList(){
 void identifierListRest(){
   if(lookahead == ','){
     match(',');
+    temp[tempIndex] = tokenval;
+    tempIndex++;
     match(ID);
     identifierListRest();
   }
@@ -343,7 +359,7 @@ void type(){
   else if (lookahead == REAL)
   {
     match(REAL);
-    fprintf(outfile, "real ");
+    fprintf(outfile, "float ");
   }
   else if (lookahead == CHAR)
   {
@@ -425,7 +441,7 @@ void emit(int t, int tval)
             fprintf(outfile,"%d ", tval); 
             break;
         case ID:
-            fprintf(outfile,"%s ", symtable[tval].lexptr);
+            fprintf(outfile,"%s", symtable[tval].lexptr);
             break;
         default:
             fprintf(outfile,"token %d, tokenval %d ", t, tval);
