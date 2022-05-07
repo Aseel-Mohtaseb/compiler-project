@@ -9,15 +9,15 @@
 #define NONE -1
 #define EOS '\0'
 #define NUM 256//
-#define DIV 257
-#define MOD 258
+#define DIV 257 //
+#define MOD 258//
 #define ID 259 //
 #define DONE 260
-#define program 261// PROGRAM
-#define infix 262
-#define postfix 263
-#define begin 264// BEGIN
-#define end 265// END
+#define PROGRAM 261// 
+// #define infix 262
+// #define postfix 263
+#define BEGIN 264// 
+#define END 265// 
 
 #define INPUT 266
 #define OUTPUT 267
@@ -34,11 +34,12 @@
 #define DO 278
 #define WRITELN 279
 #define ELSE 280
-#define RELOP 281
-#define ADDOP 282
-#define MULOP 283
-#define NOT 284
-// #define 
+#define NOT 281
+#define GREATEREQUAL 282 //>=
+#define LESSEQUAL 283 //<=
+#define NOTEQUAL 284 //<>
+#define OR 285
+#define AND 286
 
 #define STRMAX 999
 #define SYMMAX 100
@@ -60,9 +61,11 @@ int temp[MAXTEMPSIZE];// To store tokenVals
 
 int lexan();
 void parse();
-void expr();
+// void expr();
 void term();
+void termRest();
 void factor();
+
 void match(int t);
 void emit(int t, int tval);
 int insert(char s[], int tok);
@@ -87,6 +90,16 @@ void identifierList();
 void identifierListRest();
 void type();
 void block();
+void statements();
+void statementsRest();
+void statement();
+void elseClause();
+void expressionList();
+void expressionListRest();
+void expression();
+void expressionPrime();
+void simpleExpression();
+void simpleExpressionRest();
 
 /*form of symbol table entry */
 struct entry{
@@ -99,15 +112,15 @@ struct entry symtable[SYMMAX];
 struct entry keywords[] = {
     "div", DIV,
     "mod", MOD,
-    "program", program,
-    "infix", infix,
-    "postfix", postfix,
-    "begin", begin,
-    "end", end,
+    "PROGRAM", PROGRAM,
+    // "infix", infix,
+    // "postfix", postfix,
+    "BEGIN", BEGIN,
+    "END", END,
 
     // "id", ID,
-    "input", INPUT,
-    "output", OUTPUT,
+    "Input", INPUT,
+    "Output", OUTPUT,
     "CONST", CONST,
     "VAR", VAR,
     //EPSILON
@@ -208,15 +221,15 @@ void parse()
 
   header();
   declarations();
-  //block();
+  fprintf(outfile, "\nvoid main(void)");
+  block();  
 
-  
 }
 
 //Header -> program id(input,output) ;
 void header(){
-  if(lookahead == program){
-      match(program);
+  if(lookahead == PROGRAM){
+      match(PROGRAM);
   }else error("'PROGRAM' is missing");
   if(lookahead == ID){
       match(ID);
@@ -284,15 +297,25 @@ void constantDefinitions(){
 
 //ConstantDefinition -> id=num;
 void constantDefinition(){
-  // id = num;
+  fprintf(outfile, "const double ");
+  emit(ID, tokenval);
+  match(ID);
+  match('=');
+  fprintf(outfile, "=");
+  emit(NUM, tokenval);
+  match(NUM);
+  fprintf(outfile, ";\n");
+  match(';');
+  
 }
 
 //ConstantDefinitionsRest -> ConstantDefinition ConstantDefinitionsRest  | <epsilon>
 void constantDefinitionsRest(){
-  constantDefinition();
-  constantDefinitionsRest();
-
-  //else return;
+  if (lookahead == ID)
+  {
+    constantDefinition();
+    constantDefinitionsRest();
+  }else return;
 }
 
 // VariableDeclarations  -> VariableDeclaration VariableDeclarationsRest
@@ -325,8 +348,10 @@ void variableDeclaration(){
     emit(ID, temp[i]);
     if (i != tempIndex-1)
       fprintf(outfile, ",");
+    else
+      fprintf(outfile, ";");
   }
-  fprintf(outfile, "; ");
+
 }
 
 // IdentifierList  -> id IdentifierListRest
@@ -375,48 +400,231 @@ void type(){
   
 }
 
-
-void expr()
-{
-  int t;
-  term();
-  while(1)
-    switch(lookahead){
-      case'+' :case '-':
-        t=lookahead;
-        match(lookahead);term();emit(t,NONE);
-        continue;
-      default:
-        return;
-    }
+//Block  ->  begin Statements end
+void block(){
+  fprintf(outfile, "\n{");
+  match(BEGIN);
+  statements();  
+  fprintf(outfile, "\n}");
+  match(END);
 }
 
-void term()
-{
-  int t;
-  factor();
-  while(1)
-    switch(lookahead){
-        case '*' : case '/': case DIV: case MOD: case '%': case '\\':
-            t=lookahead;
-            match(lookahead); factor(); emit(t,NONE);
-            continue;
-        default:
-            return ;
-    }
+// Statements  ->   Statement StatementsRest
+void statements(){
+  statement();
+  statementsRest();
 }
-void factor(){
+
+// StatementsRest -> ;  Statement StatementsRest | <epsilon>
+void statementsRest(){
+  if (lookahead == ';')
+  {
+    match(';');
+    statement();
+    statementsRest();
+  }else return;
+  
+}
+
+/*
+Statement -> id := Expression
+                        | Block
+                        | if Expression then Statement ElseClause
+                        | while Expression do Statement
+                        | writeln(SimpleExpression)
+                        | <epsilon>
+*/
+void statement(){
+  fprintf(outfile, "\n\t");
+  if (lookahead == ID){
+    emit(ID, tokenval);
+    match(ID);
+    fprintf(outfile, "=");
+    match(':');
+    match('=');
+    expression();
+    fprintf(outfile, ";");
+  } else if(lookahead == BEGIN){
+    block();
+  } else if(lookahead == IF){
+    fprintf(outfile, "if");
+    match(IF);
+    expression();
+    match(THEN);
+    statement();
+    elseClause();
+  } else return;
+  
+}
+
+//ElseClause -> else Statement | <epsilon>
+void elseClause(){
+  if (lookahead == ELSE){
+    fprintf(outfile, "else ");
+    match(ELSE);
+    statement();
+  } else return;
+  
+}
+
+// ExpressionList -> Expression ExpressionListRest
+void expressionList(){
+  expression();
+  expressionListRest();
+}
+
+// ExpressionListRest ->  , Expression ExpressionListRest | <epsilon>
+void expressionListRest(){
+  if(lookahead == ','){
+    fprintf(outfile, ", ");
+    match(',');
+    expression();
+    expressionListRest();
+  } else return;
+}
+
+// Expression -> SimpleExpression ExpressionPrime
+void expression(){
+  simpleExpression();
+  expressionPrime();
+}
+
+// ExpressionPrime -> relop SimpleExpression  | <epsilon>
+void expressionPrime(){
   switch(lookahead){
-    case '(':
-      match('(');expr();match(')');break;
-    case NUM:
-      emit(NUM,tokenval);match(NUM);break;
-    case ID:
-      emit(ID,tokenval);match(ID);break;
+    case '=': case '>': case '<': case GREATEREQUAL: case LESSEQUAL: case NOTEQUAL:
+      emit(lookahead, NONE);
+      match(lookahead);
+      simpleExpression();
+      break;
     default:
-    error("syntax error in factor");
+      return;
   }
 }
+
+// SimpleExpression -> Term SimpleExpressionRest | addop Term SimpleExpressionRest
+void simpleExpression(){
+  switch(lookahead){
+    case '+': case '-': case OR:
+      emit(lookahead, NONE);
+      match(lookahead);
+      term();
+      simpleExpressionRest();
+      break;
+    case ID: case NUM: case '(': case NOT: //factor
+      term();
+      simpleExpressionRest();
+      break;
+    default: 
+      error("error in simpleExpression");
+    }
+}
+
+// SimpleExpressionRest -> addop Term SimpleExpressionRest | <epsilon>
+void simpleExpressionRest(){
+  switch (lookahead){
+    case '+': case '-': case OR:
+      emit(lookahead, NONE);
+      match(lookahead);
+      term();
+      simpleExpressionRest();
+      break;
+    default:
+      return;
+  }
+}
+// Term -> Factor TermRest
+void term(){
+  factor();
+  termRest();
+}
+
+// TermRest ->  mulop Factor TermRest | <epsilon>
+void termRest(){
+  switch (lookahead){
+    case '*': case '/': case DIV: case MOD: case AND:
+      emit(lookahead, NONE);
+      match(lookahead);
+      factor();
+      termRest();
+      break;
+    default:
+      return;
+  }
+}
+
+// Factor -> id | num | ( Expression ) | not Factor 
+void factor(){
+  if (lookahead == ID){
+    emit(ID, tokenval);
+    match(ID);
+  } else if (lookahead == NUM){
+    emit(NUM, tokenval);
+    match(NUM);
+  } else if (lookahead == '('){
+    match('(');
+    fprintf(outfile, "(");
+    expression();
+    match(')');
+    fprintf(outfile, ")");
+  } else if (lookahead == '('){
+    match('(');
+    fprintf(outfile, "(");
+    expression();
+    match(')');
+    fprintf(outfile, ")");
+  } else if (lookahead == NOT){
+    match(NOT);
+    fprintf(outfile, "!");
+    factor();
+  } else error("Error in factor");
+}
+
+
+// these 3 functions were in project number 1, we should modifie them:
+
+// void expr()
+// {
+//   int t;
+//   term();
+//   while(1)
+//     switch(lookahead){
+//       case'+' :case '-':
+//         t=lookahead;
+//         match(lookahead);term();emit(t,NONE);
+//         continue;
+//       default:
+//         return;
+//     }
+// }
+
+// void term()
+// {
+//   int t;
+//   factor();
+//   while(1)
+//     switch(lookahead){
+//         case '*' : case '/': case DIV: case MOD: case '%': case '\\':
+//             t=lookahead;
+//             match(lookahead); factor(); emit(t,NONE);
+//             continue;
+//         default:
+//             return ;
+//     }
+// }
+
+// void factor(){
+//   switch(lookahead){
+//     case '(':
+//       match('(');expr();match(')');break;
+//     case NUM:
+//       emit(NUM,tokenval);match(NUM);break;
+//     case ID:
+//       emit(ID,tokenval);match(ID);break;
+//     default:
+//     error("syntax error in factor");
+//   }
+// }
 
 void match(int t)
 {
@@ -438,7 +646,7 @@ void emit(int t, int tval)
         case MOD:
             fprintf(outfile,"MOD "); break;
         case NUM:
-            fprintf(outfile,"%d ", tval); 
+            fprintf(outfile,"%d", tval); 
             break;
         case ID:
             fprintf(outfile,"%s", symtable[tval].lexptr);
