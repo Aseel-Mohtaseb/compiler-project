@@ -1,0 +1,13 @@
+#include <iostream>
+using namespace std;
+const double x=10;
+const double i=7;
+int X,Y,Z;float A,B;char C,c;bool F,f;
+void main(void)
+{
+	X=10;
+	Y=20;
+	if (Xtoken 62, tokenval -1 Y)
+	Z=X+ Y;else 
+	Z=X- Y;
+}

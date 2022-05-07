@@ -1,0 +1,15 @@
+PROGRAM Example(Input, Output);
+CONST 
+    x=10;
+    i=7;
+VAR 
+    X,Y,Z: integer; A,B: real; C,c: char; F,f: boolean;
+BEGIN
+    X:=10;
+    Y:=20;
+    
+    IF X > Y THEN
+      Z:=X+Y
+    ELSE
+      Z:=X-Y;
+END

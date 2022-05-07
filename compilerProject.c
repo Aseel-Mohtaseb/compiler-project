@@ -8,16 +8,14 @@
 #define MAXTEMPSIZE 50
 #define NONE -1
 #define EOS '\0'
-#define NUM 256//
-#define DIV 257 //
-#define MOD 258//
-#define ID 259 //
+#define NUM 256
+#define DIV 257
+#define MOD 258
+#define ID 259 
 #define DONE 260
-#define PROGRAM 261// 
-// #define infix 262
-// #define postfix 263
-#define BEGIN 264// 
-#define END 265// 
+#define PROGRAM 261
+#define BEGIN 264
+#define END 265 
 
 #define INPUT 266
 #define OUTPUT 267
@@ -44,9 +42,6 @@
 #define STRMAX 999
 #define SYMMAX 100
 
-
-
-
 FILE *infile, *outfile;
 
 int tokenval = NONE;
@@ -61,7 +56,6 @@ int temp[MAXTEMPSIZE];// To store tokenVals
 
 int lexan();
 void parse();
-// void expr();
 void term();
 void termRest();
 void factor();
@@ -110,35 +104,31 @@ struct entry{
 struct entry symtable[SYMMAX];
 
 struct entry keywords[] = {
-    "div", DIV,
-    "mod", MOD,
+    "DIV", DIV,
+    "MOD", MOD,
     "PROGRAM", PROGRAM,
-    // "infix", infix,
-    // "postfix", postfix,
     "BEGIN", BEGIN,
     "END", END,
-
-    // "id", ID,
     "Input", INPUT,
     "Output", OUTPUT,
     "CONST", CONST,
     "VAR", VAR,
-    //EPSILON
     "integer", INTEGER,
     "real", REAL,
     "char", CHAR,
     "boolean", BOOLEAN,
-    "if", IF,
-    "then", THEN,
-    "while", WHILE,
-    "do", DO,
-    "writeln", WRITELN,
-    "else", ELSE,
-    //
-    //
-    //
+    "IF", IF,
+    "THEN", THEN,
+    "WHILE", WHILE,
+    "DO", DO,
+    "WRITELN", WRITELN,
+    "ELSE", ELSE,
+     ">=", GREATEREQUAL,
+    "<=", LESSEQUAL,
+    "<>", NOTEQUAL,
+    "OR", OR,
     "not", NOT,
-
+    "AND", AND,
     0, 0,
 };
 
@@ -447,9 +437,10 @@ void statement(){
   } else if(lookahead == BEGIN){
     block();
   } else if(lookahead == IF){
-    fprintf(outfile, "if");
+    fprintf(outfile, "if (");
     match(IF);
     expression();
+    fprintf(outfile, ")");
     match(THEN);
     statement();
     elseClause();
@@ -579,52 +570,6 @@ void factor(){
     factor();
   } else error("Error in factor");
 }
-
-
-// these 3 functions were in project number 1, we should modifie them:
-
-// void expr()
-// {
-//   int t;
-//   term();
-//   while(1)
-//     switch(lookahead){
-//       case'+' :case '-':
-//         t=lookahead;
-//         match(lookahead);term();emit(t,NONE);
-//         continue;
-//       default:
-//         return;
-//     }
-// }
-
-// void term()
-// {
-//   int t;
-//   factor();
-//   while(1)
-//     switch(lookahead){
-//         case '*' : case '/': case DIV: case MOD: case '%': case '\\':
-//             t=lookahead;
-//             match(lookahead); factor(); emit(t,NONE);
-//             continue;
-//         default:
-//             return ;
-//     }
-// }
-
-// void factor(){
-//   switch(lookahead){
-//     case '(':
-//       match('(');expr();match(')');break;
-//     case NUM:
-//       emit(NUM,tokenval);match(NUM);break;
-//     case ID:
-//       emit(ID,tokenval);match(ID);break;
-//     default:
-//     error("syntax error in factor");
-//   }
-// }
 
 void match(int t)
 {
